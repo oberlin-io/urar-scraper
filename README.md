@@ -1,9 +1,9 @@
 # urar-scraper
 Collects web-based real estate data and formats the text for input to the Uniform Residential Appraisal Report, or the URAR form.
 
-# Some functions to possibly work on
+## Some functions to possibly work on
 
-## Store neighborhood list with names and map numbers
+### Store neighborhood list with names and map numbers
 nCount = len(lists.neighborhoods)
 for i in lists.neighborhoods:
     if i[0] in taxC:
@@ -16,8 +16,8 @@ if nCount <= 0:
     dataStrings.append("Null")
     dataStrings.append("Null")
 
-# Auditor Dimensions
-## Auditor if Dimensions have acres and not feet
+### Auditor Dimensions
+#### Auditor if Dimensions have acres and not feet
 if frontage == "":
     acres = ac0 + ac1
     sqft = acres * 43560 # ac-ft conversion
