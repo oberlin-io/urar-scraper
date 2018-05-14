@@ -17,7 +17,7 @@ if nCount <= 0:
     dataStrings.append("Null")
 
 # Auditor Dimensions
-### Auditor if Dimensions have acres and not feet
+## Auditor if Dimensions have acres and not feet
 if frontage == "":
     acres = ac0 + ac1
     sqft = acres * 43560 # ac-ft conversion
