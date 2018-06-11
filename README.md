@@ -18,16 +18,4 @@ if nCount <= 0:
     dataStrings.append("Null")
 ```
 
-### Auditor Dimensions
-#### Auditor if Dimensions have acres and not feet
-```
-if frontage == "":
-    acres = ac0 + ac1
-    sqft = acres * 43560 # ac-ft conversion
-    front = raw_input("Input frontage in feet: ")
-    # auto-open: https://starkcountyohio.maps.arcgis.com/apps/webappviewer/index.html?id=03f862c83bd0426588b5571afe59a407
-    depth = sqft / front
-    dimString = "Frontage,"+str(front)+"\nDepth,"+str(depth)+"\n"
-    return dimString
-```
 
