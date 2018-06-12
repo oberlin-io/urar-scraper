@@ -15,7 +15,7 @@ print 'Save order and purchase agreement from client.'
 
 ### Make new folder for order and initiate HTML file
 if testing == False:
-	order = raw_input('The order file name, please: ') # Ex: 231page
+	order = raw_input('The order file name, eg 231page, please: ') # Ex: 231page
 else:
 	order = '7084blue'
 	print 'In testing mode, using order %s.' % order
@@ -29,7 +29,7 @@ content += '''<div class='inputBox'>
 </div><br>
 '''
 
-content += m.formInput('Order', order)
+content += m.formInput('File #', order)
 
 m.makeFolder(order)
 m.writeFile(order, order + '.html', content, 'w')
@@ -66,9 +66,18 @@ legal = m.getLegal(driver)
 
 
 
+### Get Taxes minus Special Assessments
+taxes = m.getTaxes(driver)
+
+
+
+### Get neighborhood (School district) and its map reference #
+hood = m.getHood(driver, legal)
+
+
+
 ### Dimensions and area of land
 dims = m.getDims(driver, parcel)
-
 
 
 
@@ -81,12 +90,23 @@ today = m.dt.datetime.strftime(m.dt.datetime.today(),'%m/%d/%Y')
 content = m.formInput('Address', address_parts[0]) 
 content += m.formInput('City', address_parts[1])
 content += m.formInput('Zip', address_parts[2])
-content += m.formInput('Parcel', parcel)
 content += m.formInput('Owner', owner)
 content += m.formInput('Legal Desc.', legal)
+content += m.formInput('Parcel', parcel)
+
+content += m.formInput('Taxes', taxes[0])
+
+content += m.formInput('Neighborhood', hood[0])
+content += m.formInput('Map Ref.', hood[1])
+
+content += m.formInput('Special Ass.', taxes[1]) # Special assessment total
+
 content += m.formInput('Frontage', dims[0])
 content += m.formInput('Depth', dims[1])
 content += m.formInput('Area', dims[2])
+
+content += m.formInput('Ext. Factors', taxes[2]) # ie special assessment(s) description
+
 content += m.formInput('Effective Date', today)
 
 m.writeFile(order, order + '.html', content, 'a')

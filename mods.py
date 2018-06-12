@@ -5,7 +5,6 @@ from selenium import webdriver as web
 from bs4 import BeautifulSoup as soup
 import requests as reqs
 import lists
-
 import time
 
 
@@ -155,6 +154,8 @@ def getParcel(driver, order):
 				print results.index(r) + 1, ':', r
 			response = raw_input('Type the number to select, or type your own parcel number: ')
 
+		print 'Got it, thanks.'
+		
 	else:
 		response = ''
 
@@ -522,6 +523,135 @@ def getDims(driver, parcel):
 		sq_ft = tot_sq_ft
 			
 
-	return [frontage, depth, sq_ft]
+	return [int(frontage), int(depth), int(sq_ft)]
 		
+	
+	
+def getTaxes(driver):
+
+	driver.find_element_by_link_text('Tax').click()
+	
+	tax_table = driver.find_element_by_id('ContentPlaceHolder1_Tax_gvDataTaxBilling')
+	tax_table = tax_table.get_attribute('innerHTML')
+	tax_table = soup(tax_table, 'html.parser')
+	table_rows = tax_table.findAll('tr')
+	
+	for r in table_rows:
+		table_tds = r.findAll('td')
 		
+		for c in table_tds:
+			if str(c.contents)[3:-2] == 'Total:':
+				tax = (str(table_tds[2].contents)[3:-2])
+				break
+				
+			else:
+				pass
+	
+	tax = tax.replace(' ','')
+	tax = tax.replace(',','')
+	tax = float(tax)
+	
+	
+	# Special Assessments. Sum and subtract from tax. Return sum, description sentence
+	tax_table = driver.find_element_by_id('ContentPlaceHolder1_Tax_gvSpecials')
+	tax_table = tax_table.get_attribute('innerHTML')
+	tax_table = soup(tax_table, 'html.parser')
+	table_rows = tax_table.findAll('tr')
+	
+	table = []
+	for r in table_rows:
+		if table_rows.index(r) == 0:
+			table_ths = r.findAll('th')
+			row = []
+			for c in table_ths:
+				row.append(str(c.contents)[3:-2])
+			table.append(row)
+			
+		else:
+			table_tds = r.findAll('td')
+			row = []
+			for c in table_tds:
+				row.append(str(c.contents)[3:-2])
+			table.append(row)
+	
+	
+	code_dx = table[0].index('Code')
+	agency_dx = table[0].index('Agency')
+	amt_dx = table[0].index('StandardAmount')
+	
+	spec_ass = [False, False]
+	spec_sum = 0.0
+	lights_sum = 0.0
+	lights_cnt = 0.0
+	for r in table:
+		# Street lighting assessment. Finds the most recent one (last one mentioned in table)
+		if 'LIGHTING' in r[code_dx]:
+			lights = r[agency_dx] + r[code_dx][4:]
+			lights = lights.title()
+			spec_ass[0] = lights
+			
+			amt = r[amt_dx].replace('$','')
+			lights_sum += float(amt)
+			lights_cnt += 1
+		
+		# Watershed assessment. Finds the most recent one (last one mentioned in table)
+		elif 'WATERSHED' in r[code_dx]:
+			shed = r[code_dx][5:]
+			shed = shed.title()
+			spec_ass[1] = shed		
+			amt = r[amt_dx].replace('$','')
+			shed_amt = 6.0
+		else:
+			pass
+	
+	# Write spec. assessent description strings (one plural, other singular)
+	if spec_ass.count(False) == 1:
+		for a in spec_ass:
+			if a != False:
+				spec_desc = 'There is an assessment for %s.' % a
+			else:
+				pass
+	else:
+		spec_desc = 'There are assessments for %s and %s.' % (spec_ass[0], spec_ass[1])
+	
+	# Average lights assessment, get assessment sum
+	if lights_cnt > 0:
+		lights_avg = lights_sum / lights_cnt
+		spec_sum = (lights_avg * 2) + shed_amt
+	else:
+		spec_sum = shed_amt
+	
+	tax = tax - spec_sum
+	
+	return [tax, spec_sum, spec_desc]
+	
+	
+	
+def getHood(driver, legal):
+	# Grab school district from legal string
+	hood_dx = legal.index(' - ') + 3
+	hood = legal[hood_dx:]
+	# Remove LSD or CSD
+	hood = hood[:-4]
+	
+	map_ref = None
+	for h in lists.hoods:
+		# In cases where multiple hood names are combined into one map ref (see lists.hoods)
+		if h[0] > 1:
+			for i in h:
+				if hood == i:
+					map_ref = h[1]
+		# Only one hood to one map ref #
+		else:	
+			if hood == h[0]:
+				map_ref = h[1]
+		
+	if map_ref == None:
+		map_ref = 'No match found for %s.' % hood
+		# If there are cases in which the school district does not match to a neighborhood name in lists,
+		# then should give a list of choices to user. or make note of such cases and program them in, each one
+
+	return [hood, map_ref]
+
+	
+	
