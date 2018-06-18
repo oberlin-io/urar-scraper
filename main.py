@@ -9,7 +9,8 @@ testing = testmode.testmode()
 
 
 ### Get order
-print 'Save order and purchase agreement from client.'
+print 'While program runs, save order and purchase agreement from client.\n'
+print 'Remember to manually check for second parcels.\n'
 
 
 

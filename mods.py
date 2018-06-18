@@ -113,9 +113,22 @@ def getParcel(driver, order):
 	'''
 
 	# In most cases order name format is 1234abcd
+	
+	# Some cases the order name has a single digit suffixed, eg 1714sinc2
+	# If duplicate orders ever increase into double digits, change regex
+	digi_suffix = re.compile('\d')
+	
+	if digi_suffix.match(order[-1]):
+		order = order[:-1]
+		pause = raw_input('Order string after finding single digit at end and splicing: %s' % order)
+	
+	else:
+		pause = raw_input('Last digit in order string not found; no change: %s' % order)
+		pass
+	
 	# Capture the number, if there is one
 	digis = re.compile('(\d+)')
-
+	
 	if digis.match(order):
 		number = digis.match(order).group()
 		street = order[digis.match(order).end():]
@@ -159,7 +172,8 @@ def getParcel(driver, order):
 	else:
 		response = ''
 
-		
+	print 'Gathering info...'
+	
 	# If a parcel number was typed
 	if len(response) > 2:
 		parcel = response
@@ -558,68 +572,76 @@ def getTaxes(driver):
 	tax_table = soup(tax_table, 'html.parser')
 	table_rows = tax_table.findAll('tr')
 	
-	table = []
-	for r in table_rows:
-		if table_rows.index(r) == 0:
-			table_ths = r.findAll('th')
-			row = []
-			for c in table_ths:
-				row.append(str(c.contents)[3:-2])
-			table.append(row)
-			
-		else:
-			table_tds = r.findAll('td')
-			row = []
-			for c in table_tds:
-				row.append(str(c.contents)[3:-2])
-			table.append(row)
-	
-	
-	code_dx = table[0].index('Code')
-	agency_dx = table[0].index('Agency')
-	amt_dx = table[0].index('StandardAmount')
-	
-	spec_ass = [False, False]
-	spec_sum = 0.0
-	lights_sum = 0.0
-	lights_cnt = 0.0
-	for r in table:
-		# Street lighting assessment. Finds the most recent one (last one mentioned in table)
-		if 'LIGHTING' in r[code_dx]:
-			lights = r[agency_dx] + r[code_dx][4:]
-			lights = lights.title()
-			spec_ass[0] = lights
-			
-			amt = r[amt_dx].replace('$','')
-			lights_sum += float(amt)
-			lights_cnt += 1
+	# Check if any spec ass data (the table will only have 1 row, saying no data)
+	if len(table_rows) == 1:
 		
-		# Watershed assessment. Finds the most recent one (last one mentioned in table)
-		elif 'WATERSHED' in r[code_dx]:
-			shed = r[code_dx][5:]
-			shed = shed.title()
-			spec_ass[1] = shed		
-			amt = r[amt_dx].replace('$','')
-			shed_amt = 6.0
-		else:
-			pass
+		spec_sum = 0
+		spec_desc = None
+		
+	else:
 	
-	# Write spec. assessent description strings (one plural, other singular)
-	if spec_ass.count(False) == 1:
-		for a in spec_ass:
-			if a != False:
-				spec_desc = 'There is an assessment for %s.' % a
+		table = []
+		for r in table_rows:
+			if table_rows.index(r) == 0:
+				table_ths = r.findAll('th')
+				row = []
+				for c in table_ths:
+					row.append(str(c.contents)[3:-2])
+				table.append(row)
+				
+			else:
+				table_tds = r.findAll('td')
+				row = []
+				for c in table_tds:
+					row.append(str(c.contents)[3:-2])
+				table.append(row)
+		
+		
+		code_dx = table[0].index('Code')
+		agency_dx = table[0].index('Agency')
+		amt_dx = table[0].index('StandardAmount')
+		
+		spec_ass = [False, False]
+		spec_sum = 0.0
+		lights_sum = 0.0
+		lights_cnt = 0.0
+		for r in table:
+			# Street lighting assessment. Finds the most recent one (last one mentioned in table)
+			if 'LIGHTING' in r[code_dx]:
+				lights = r[agency_dx] + r[code_dx][4:]
+				lights = lights.title()
+				spec_ass[0] = lights
+				
+				amt = r[amt_dx].replace('$','')
+				lights_sum += float(amt)
+				lights_cnt += 1
+			
+			# Watershed assessment. Finds the most recent one (last one mentioned in table)
+			elif 'WATERSHED' in r[code_dx]:
+				shed = r[code_dx][5:]
+				shed = shed.title()
+				spec_ass[1] = shed		
+				amt = r[amt_dx].replace('$','')
+				shed_amt = 6.0
 			else:
 				pass
-	else:
-		spec_desc = 'There are assessments for %s and %s.' % (spec_ass[0], spec_ass[1])
-	
-	# Average lights assessment, get assessment sum
-	if lights_cnt > 0:
-		lights_avg = lights_sum / lights_cnt
-		spec_sum = (lights_avg * 2) + shed_amt
-	else:
-		spec_sum = shed_amt
+		
+		# Write spec. assessent description strings (one plural, other singular)
+		if spec_ass.count(False) == 1:
+			for a in spec_ass:
+				if a != False:
+					spec_desc = 'There is an assessment for %s.' % a
+				else:
+					pass
+		else:
+			spec_desc = 'There are assessments for %s and %s.' % (spec_ass[0], spec_ass[1])
+		
+		# Average lights assessment, get assessment sum
+		if lights_cnt > 0:
+			lights_avg = lights_sum / lights_cnt
+			spec_sum = (lights_avg * 2) + shed_amt
+		else:
+			spec_sum = shed_amt
 	
 	tax = tax - spec_sum
 	
